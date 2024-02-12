@@ -19,15 +19,16 @@ go build
 ./webhook --address 127.0.0.1:8080
 ```
 
-This example comes with certain parameters baked in, assuming:
-at s3 endpoint `play.min.io:9000` (`config-endpoint`), there exists bucket `config-store` (`config-bucket`) which contains object `config.json` (`config-file`) accessible using credentials `configreadonly` (`config-accesskey`) / `minio123` (`config-secretkey`)
+ This solution expects that MinIO Bucket Notifications have been set up to 'webhook' (see https://min.io/docs/minio/linux/administration/monitoring/bucket-notifications.html)
+
+This example comes with certain parameters baked in, where at s3 endpoint `play.min.io:9000` (`config-endpoint`), there exists a bucket called `config-store` (`config-bucket`) which contains object `config.json` (`config-file`) accessible using credentials `configreadonly` (`config-accesskey`) / `minio123` (`config-secretkey`)
 
 The program logs listens on all interfaces at port `:8080` (`address`). Incoming events are all logged automatically to the file system at `./log.out` (`log-file`). By default, the program will check if no activity has been detected on a bucket for 15 min (`threshold`)
 
 The following constants also control the program:
 Activity scanning takes place every 5 seconds (`MonitorInterval`) and after a successful alert the system cools down for 15 s (`MonitorCoolDown`) before sending another alert if activity is still not detected on a specific bucket/prefix.
 
-Example config-file. This needs to be loaded at `config-endpoint` in `config-bucket`
+Example sample-config.json. This needs to be loaded at `config-endpoint` in `config-bucket`
 ```
 [
     {
