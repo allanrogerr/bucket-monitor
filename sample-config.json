@@ -1,0 +1,29 @@
+[
+    {
+        "name": "files0",
+        "prefixes":
+        [
+            {
+                "name": "demoA/Level0/Level1"
+            },
+            {
+                "name": "demoB/Level3"
+            }
+        ]
+    },
+    {
+        "name": "files1",
+        "prefixes":
+        [
+            {
+                "name": "demoX/Year2024/Month1/Day12"
+            },
+            {
+                "name": "demoY/Year2023/Month6"
+            },
+            {
+                "name": "demoX/Year2024/Month1/Day14"
+            }
+        ]
+    }
+]
