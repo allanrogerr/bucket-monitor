@@ -54,7 +54,7 @@ func logActivity(body []byte) {
 	}
 }
 
-// monitorSchedule begins the monitor schedule
+// MonitorSchedule begins the monitor schedule; checking the in-memory representation of the configuration json for instances of no activity on a bucket/prefix
 func monitorSchedule(doneCh <-chan struct{}) {
 	ticker := time.NewTicker(time.Second * time.Duration(MonitorInterval))
 	go func() {
@@ -65,6 +65,7 @@ func monitorSchedule(doneCh <-chan struct{}) {
 				monitorActivity()
 				monitorBenchmark = time.Since(start)
 			case <-doneCh:
+				// If channel is populated then stop the ticker
 				ticker.Stop()
 				return
 			}
@@ -73,27 +74,39 @@ func monitorSchedule(doneCh <-chan struct{}) {
 }
 
 func monitorActivity() {
+	// Define common point in time from which to check all activity
 	now := time.Now().UTC()
 	for idBucket, bucket := range configBuckets {
 		for idPrefix, prefix := range bucket.Prefixes {
+			// For a given bucket / prefix, extract the last activity time from the in-memory config
 			logActivityTime := configBuckets[idBucket].Prefixes[idPrefix].ActivityTime
+			// If there was no activity
 			if logActivityTime == "" {
+				// Set the last activity time to now
 				configBuckets[idBucket].Prefixes[idPrefix].ActivityTime = now.Format("2006-01-02T15:04:05Z")
 				logActivityTime = configBuckets[idBucket].Prefixes[idPrefix].ActivityTime
 			}
+			// Create a time object out of this last activity time string
 			activityTime, err := time.Parse("2006-01-02T15:04:05Z", logActivityTime)
 			if err != nil {
 				log.Println(err)
 				continue
 			}
 
+			// alertThreshold is the maximum inactive time in bucket prefix, e.g. 15 minutes
+			// find the point in the past to start checking for activity, e.g. if `now` = 4:15am, then `timeThreshold` = 4am
 			timeThreshold := now.Add(time.Duration(-alertThreshold) * time.Second)
+			// MonitorCoolDown controls the frequency of alert sending, once an alert is active (seconds)
+			// find if the program should send an alert, e.g. if `MonitorCoolDown` = 1 minute, then `cooldownThreshold` = 4:14am
 			cooldownThreshold := now.Add(time.Duration(-MonitorCoolDown) * time.Second)
 
+			// e.g. if `activityTime` = 4:05am, then this is not before 4am - no alert will be sent
 			if activityTime.Before(timeThreshold) {
 				firstFire := false
+				// this is an alert candidate - check the last logAlertFireTime
 				logAlertFireTime := configBuckets[idBucket].Prefixes[idPrefix].AlertFireTime
 				if logAlertFireTime == "" {
+					// that has never been fired
 					firstFire = true
 					configBuckets[idBucket].Prefixes[idPrefix].AlertFireTime = now.Format("2006-01-02T15:04:05Z")
 					logAlertFireTime = configBuckets[idBucket].Prefixes[idPrefix].AlertFireTime
@@ -103,6 +116,8 @@ func monitorActivity() {
 					log.Println(err)
 					continue
 				}
+				// if this is the first time the alert has fired, or it's time to send a new alert because data still isn't flowing
+				// e.g. if `alertFireTime` = 4:10am and `cooldownThreshold` = 4:14am, then a new alert needss to be sent
 				if firstFire || alertFireTime.Before(cooldownThreshold) {
 					configBuckets[idBucket].Prefixes[idPrefix].AlertFireTime = now.Format("2006-01-02T15:04:05Z")
 					err = alert(bucket.Name, prefix.Name, activityTime)

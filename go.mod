@@ -1,6 +1,6 @@
 module github.com/minio/webhook
 
-go 1.21.5
+go 1.21.7
 
 require (
 	github.com/minio/madmin-go/v3 v3.0.1
