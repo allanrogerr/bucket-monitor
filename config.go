@@ -27,6 +27,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
+// Obtain bucket and prefix configuration from json file provided, on s3 endpoint or filesystem
 func setup() {
 	// Read configuration
 	s3Client, err := createClient(configEndpoint)
@@ -36,7 +37,7 @@ func setup() {
 		// Fetch config
 		err = fetchConfig(s3Client)
 		if err != nil {
-			log.Printf("Could not fetch config, searching on local filesystem %v\n", err)
+			log.Printf("Could not fetch config `%v`, searching on local filesystem...\n", err)
 		}
 	}
 	// Read config
@@ -51,6 +52,7 @@ func setup() {
 	}
 }
 
+// Create a minio client
 func createClient(configEndpoint string) (*minio.Client, error) {
 	s3Client, err := minio.New(configEndpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(configAccessKey, configSecretKey, ""),
@@ -62,6 +64,7 @@ func createClient(configEndpoint string) (*minio.Client, error) {
 	return s3Client, nil
 }
 
+// Search and fetch json from s3 endpoint
 func fetchConfig(s3Client *minio.Client) (err error) {
 	if err := s3Client.FGetObject(context.Background(), configBucket, configFile, configFile, minio.GetObjectOptions{}); err != nil {
 		return err
